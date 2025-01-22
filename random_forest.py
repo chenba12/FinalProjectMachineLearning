@@ -17,7 +17,7 @@ def prepare_data(images, labels):
     return images, labels
 
 def train_random_forest(train_images, train_labels):
-    clf = RandomForestClassifier(n_estimators=100, random_state=42)
+    clf = RandomForestClassifier(random_state=42, n_estimators=100)  # Customize n_estimators if needed
     clf.fit(train_images, train_labels)
     return clf
 
@@ -26,24 +26,6 @@ def evaluate_model(clf, val_images, val_labels):
     accuracy = accuracy_score(val_labels, val_preds)
     report = classification_report(val_labels, val_preds, digits=3)
     return accuracy, report, val_preds
-
-def plot_accuracy_vs_estimators(train_images, train_labels, val_images, val_labels, output_path):
-    n_estimators_range = range(10, 210, 10)  # Test n_estimators from 10 to 200
-    accuracies = []
-    for n in n_estimators_range:
-        clf = RandomForestClassifier(n_estimators=n, random_state=42)
-        clf.fit(train_images, train_labels)
-        val_preds = clf.predict(val_images)
-        accuracies.append(accuracy_score(val_labels, val_preds))
-
-    plt.figure()
-    plt.plot(n_estimators_range, accuracies, '-o')
-    plt.title("Validation Accuracy vs Number of Estimators")
-    plt.xlabel("Number of Estimators")
-    plt.ylabel("Validation Accuracy")
-    plt.grid(True)
-    plt.savefig(output_path)
-    plt.close()
 
 def plot_confusion_matrix(val_labels, val_preds, output_path, class_names):
     cm = confusion_matrix(val_labels, val_preds)
@@ -57,6 +39,7 @@ def plot_confusion_matrix(val_labels, val_preds, output_path, class_names):
     plt.close()
 
 def main():
+    model_name = "random_forest"
     train_path = 'processed_data/train_data.pt'
     val_path = 'processed_data/val_data.pt'
 
@@ -82,24 +65,29 @@ def main():
     print("======================================")
     print(val_report)
     print(f"[Summary] Validation Accuracy: {val_accuracy*100:.2f}%")
+    images_results = f"images_results/{model_name}/"
+    results = "results"
 
     # Create folders
-    os.makedirs("image_results", exist_ok=True)
-    os.makedirs("results", exist_ok=True)
-
-    # Plot Validation Accuracy vs Number of Estimators
-    plot_accuracy_vs_estimators(train_images, train_labels, val_images, val_labels, "image_results/accuracy_vs_estimators.png")
-    print("[Info] Validation Accuracy vs Number of Estimators plot saved.")
+    os.makedirs(images_results, exist_ok=True)
+    os.makedirs(results, exist_ok=True)
 
     # Plot Confusion Matrix
     class_names = [str(i) for i in np.unique(train_labels)]  # Assuming class labels are integers
-    plot_confusion_matrix(val_labels, val_preds, "image_results/confusion_matrix.png", class_names)
+    plot_confusion_matrix(val_labels, val_preds, f"{images_results}confusion_matrix.png", class_names)
     print("[Info] Confusion Matrix plot saved.")
 
     # Save the model
-    model_path = os.path.join("results", "random_forest_model.pkl")
+    model_path = os.path.join(results, "random_forest_model.pkl")
     joblib.dump(clf, model_path)
     print(f"[Info] Model saved to {model_path}")
+
+    results_file = os.path.join(results, "random_forest_results.txt")
+
+    with open(results_file, "w") as f:
+        f.write(f"Final Accuracy: {val_accuracy:.4f}\nClassification Report:\n")
+        f.write(val_report)
+    print(f"[Info] Results saved to '{results_file}' for comparison.\n")
 
 if __name__ == "__main__":
     main()
