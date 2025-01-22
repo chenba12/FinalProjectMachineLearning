@@ -46,6 +46,7 @@ def plot_decision_tree(clf, feature_names, class_names, output_path):
     plt.close()
 
 def main():
+    model_name="decision_tree"
     train_path = 'processed_data/train_data.pt'
     val_path = 'processed_data/val_data.pt'
 
@@ -71,25 +72,21 @@ def main():
     print("======================================")
     print(val_report)
     print(f"[Summary] Validation Accuracy: {val_accuracy*100:.2f}%")
+    images_results=f"images_results/{model_name}/"
+    results="results"
 
     # Create folders
-    os.makedirs("images_results", exist_ok=True)
-    os.makedirs("results", exist_ok=True)
+    os.makedirs(images_results, exist_ok=True)
+    os.makedirs(results, exist_ok=True)
 
 
     # Plot Confusion Matrix
     class_names = [str(i) for i in np.unique(train_labels)]  # Assuming class labels are integers
-    plot_confusion_matrix(val_labels, val_preds, "image_results/confusion_matrix.png", class_names)
+    plot_confusion_matrix(val_labels, val_preds, f"{images_results}confusion_matrix.png", class_names)
     print("[Info] Confusion Matrix plot saved.")
 
-    # Visualize Decision Tree
-    plot_decision_tree(clf, feature_names=[f"Pixel {i}" for i in range(train_images.shape[1])],
-                       class_names=class_names,
-                       output_path="image_results/decision_tree.png")
-    print("[Info] Decision Tree visualization saved.")
-
     # Save the model
-    model_path = os.path.join("results", "decision_tree_model.pkl")
+    model_path = os.path.join(results, "decision_tree_model.pkl")
     joblib.dump(clf, model_path)
     print(f"[Info] Model saved to {model_path}")
 
