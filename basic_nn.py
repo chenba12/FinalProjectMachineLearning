@@ -1,52 +1,13 @@
-"""
-basic_nn.py
-
-PURPOSE:
-  - Train and compare a basic fully-connected neural network (MLP) with hidden layers, BN, Dropout
-    for 7-class facial expression recognition (48x48 grayscale input).
-  - This is more advanced than just a single linear layer but lacks convolution.
-
-FUNCTIONS & FLOW:
-  - main():
-    1) Load data from train_data.pt, val_data.pt
-    2) Flatten images to (N, 2304)
-    3) Build an MLP: BasicNN with two hidden layers
-    4) Train for N epochs, track train/val loss
-    5) Print classification report (accuracy, precision, recall, f1) on val set
-    6) Optionally evaluate on test set
-    7) Plot training curves
-
-HOW TO RUN:
-  python basic_nn.py
-
-REQUIREMENTS:
-  - Torch, NumPy, sklearn, Matplotlib
-  - 'processed_data/train_data.pt', 'processed_data/val_data.pt', 'processed_data/test_data.pt' (optional)
-"""
-
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
-
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score
 from torch.utils.data import TensorDataset, DataLoader
 
-###############################################################################
-# 1) Define the Basic MLP
-###############################################################################
 class BasicNN(nn.Module):
-    """
-    A simple MLP with two hidden layers.
-    Each hidden layer has:
-      - Linear layer
-      - BatchNorm1d
-      - ReLU
-      - Dropout
-    Output layer => 7 classes for cross-entropy
-    """
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, num_classes):
         super(BasicNN, self).__init__()
         self.fc1 = nn.Linear(input_dim, hidden_dim1)
@@ -75,22 +36,11 @@ class BasicNN(nn.Module):
         x = self.fc3(x)
         return x
 
-###############################################################################
-# 2) Helper Functions
-###############################################################################
 def flatten_images(images):
-    """
-    images shape: (N,1,48,48)
-    flattens => (N, 2304)
-    """
     N = images.shape[0]
     return images.view(N, -1)
 
 def train_model(model, loader, criterion, optimizer):
-    """
-    One epoch of training on 'model' with 'loader'.
-    Returns average train loss.
-    """
     model.train()
     total_loss = 0
     total_samples = 0
@@ -108,12 +58,6 @@ def train_model(model, loader, criterion, optimizer):
     return total_loss / total_samples
 
 def validate_model(model, loader, criterion):
-    """
-    Evaluate model on validation set. Returns:
-      - val_loss
-      - val_preds
-      - val_targets
-    """
     model.eval()
     total_loss = 0
     all_preds = []
@@ -137,42 +81,42 @@ def validate_model(model, loader, criterion):
     val_targets = np.concatenate(all_targets)
     return val_loss, val_preds, val_targets
 
-###############################################################################
-# 3) MAIN
-###############################################################################
 def main():
     print("=========================================================")
     print("  BASIC FULLY CONNECTED NEURAL NETWORK (MLP) FOR EMOTIONS ")
     print("=========================================================\n")
 
-    os.makedirs("results", exist_ok=True)
+    model_name = "basic_nn"
+    images_results = f"images_results/{model_name}/"
+    results = "results"
+
+    os.makedirs(images_results, exist_ok=True)
+    os.makedirs(results, exist_ok=True)
 
     train_path = "processed_data/train_data.pt"
-    val_path   = "processed_data/val_data.pt"
-    test_path  = "processed_data/test_data.pt"
+    val_path = "processed_data/val_data.pt"
+    test_path = "processed_data/test_data.pt"
 
     if not os.path.exists(train_path) or not os.path.exists(val_path):
         print("[Error] Processed train/val data not found.")
         return
 
-    # Load data
     train_images, train_labels, label_to_idx = torch.load(train_path, weights_only=False)
-    val_images,   val_labels,   _            = torch.load(val_path, weights_only=False)
+    val_images, val_labels, _ = torch.load(val_path, weights_only=False)
 
     print("[Info] Train set size:", train_labels.size(0))
     print("[Info] Val set size:  ", val_labels.size(0), "\n")
 
-    # Flatten images for MLP
     train_images_flat = flatten_images(train_images)
-    val_images_flat   = flatten_images(val_images)
+    val_images_flat = flatten_images(val_images)
 
     train_dataset = TensorDataset(train_images_flat, train_labels)
-    val_dataset   = TensorDataset(val_images_flat, val_labels)
+    val_dataset = TensorDataset(val_images_flat, val_labels)
 
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader   = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
-    input_dim   = train_images_flat.shape[1]  # typically 48*48=2304
+    input_dim = train_images_flat.shape[1]
     hidden_dim1 = 128
     hidden_dim2 = 64
     num_classes = len(label_to_idx)
@@ -184,7 +128,7 @@ def main():
 
     num_epochs = 10
     train_losses = []
-    val_losses   = []
+    val_losses = []
 
     print("[Info] Starting training...\n")
     for epoch in range(num_epochs):
@@ -196,8 +140,6 @@ def main():
 
         print(f"Epoch {epoch + 1}/{num_epochs} -> Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
 
-    # Classification metrics on validation
-    from sklearn.metrics import classification_report, accuracy_score
     report = classification_report(val_targets, val_preds, target_names=label_to_idx.keys(), zero_division=0)
     val_accuracy = accuracy_score(val_targets, val_preds)
 
@@ -207,27 +149,30 @@ def main():
     print(report)
     print(f"[Summary] Final Validation Accuracy: {val_accuracy * 100:.2f}%\n")
 
-    # Save results
-    results_file = "results/basic_nn_results.txt"
+    results_file = os.path.join(results, "basic_nn_results.txt")
     with open(results_file, "w") as f:
         f.write(f"Final Accuracy: {val_accuracy:.4f}\nClassification Report:\n")
         f.write(report)
     print(f"[Info] Results saved to '{results_file}' for comparison.\n")
 
-    # Plot
-    plt.figure(figsize=(8,5))
+    plt.figure(figsize=(8, 5))
     plt.plot(range(1, num_epochs + 1), train_losses, label='Train Loss', marker='o')
-    plt.plot(range(1, num_epochs + 1), val_losses,   label='Val Loss',   marker='s')
+    plt.plot(range(1, num_epochs + 1), val_losses, label='Val Loss', marker='s')
     plt.title('Basic NN (Deeper) Training')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
     plt.grid(True)
-    plt.show()
+    plt.savefig(os.path.join(images_results, "training_curves.png"))
+    plt.close()
+    print("[Info] Training curves plot saved.")
+
+    model_path = os.path.join(results, "basic_nn_model.pth")
+    torch.save(model.state_dict(), model_path)
+    print(f"[Info] Model saved to {model_path}")
 
     print("\n[Info] Basic NN training completed.\n")
 
-    # Additional summary
     print("------------------------------------------------------------")
     print("ADDITIONAL SUMMARY: BASIC NN EVALUATION ON TRAIN, VAL, TEST")
     print("------------------------------------------------------------\n")
@@ -240,9 +185,9 @@ def main():
         y_true = data_y.numpy()
         y_pred = preds.numpy()
 
-        acc  = accuracy_score(y_true, y_pred)
+        acc = accuracy_score(y_true, y_pred)
         prec = precision_score(y_true, y_pred, average=None, zero_division=0)
-        rec  = recall_score(y_true, y_pred, average=None, zero_division=0)
+        rec = recall_score(y_true, y_pred, average=None, zero_division=0)
         return acc, prec, rec
 
     train_acc, _, _ = get_preds_metrics(model, train_images_flat, train_labels)
@@ -260,7 +205,6 @@ def main():
         print("[Info] No test set found, skipping test metrics.")
 
     print("\nEnd of additional summary.\n")
-
 
 if __name__ == "__main__":
     main()

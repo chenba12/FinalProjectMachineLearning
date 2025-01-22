@@ -84,7 +84,12 @@ def main():
     class_names = [str(i) for i in np.unique(train_labels)]  # Assuming class labels are integers
     plot_confusion_matrix(val_labels, val_preds, f"{images_results}confusion_matrix.png", class_names)
     print("[Info] Confusion Matrix plot saved.")
+    results_file = os.path.join(results, "decision_tree_results.txt")
 
+    with open(results_file, "w") as f:
+        f.write(f"Final Accuracy: {val_accuracy:.4f}\nClassification Report:\n")
+        f.write(val_report)
+    print(f"[Info] Results saved to '{results_file}' for comparison.\n")
     # Save the model
     model_path = os.path.join(results, "decision_tree_model.pkl")
     joblib.dump(clf, model_path)
