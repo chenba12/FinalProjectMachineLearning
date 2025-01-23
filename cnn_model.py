@@ -210,7 +210,7 @@ def train_model(num_epochs, lr, model, train_loader, val_loader, optimizer_func=
         history.append(val_metrics)
 
     return history
-
+@torch.no_grad()
 def plot_validation_accuracy(history):
     """
     Plots val_acc vs. epochs from 'history'.
@@ -222,7 +222,8 @@ def plot_validation_accuracy(history):
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.grid(True)
-    plt.show()
+    plt.savefig("images_results/cnn_model/validation_accuracy.png")
+    plt.close()
 
 def plot_train_vs_val_loss(history):
     """
@@ -238,21 +239,18 @@ def plot_train_vs_val_loss(history):
     plt.ylabel("Loss")
     plt.legend()
     plt.grid(True)
-    plt.show()
+    plt.savefig("images_results/cnn_model/train_vs_val_loss.png")
+    plt.close()
 
 ##############################################################################
 # 5) CLASSIFICATION REPORT ON VALIDATION
 ##############################################################################
-@torch.no_grad()
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+
 def print_val_classification_report(model, loader, label_to_idx):
     """
     Print precision, recall, and f1 for each class on the entire validation set.
-
-    Steps:
-      1) model.eval()
-      2) forward -> argmax for each batch
-      3) gather predictions, compare to labels
-      4) classification_report from sklearn
     """
     model.eval()
     all_preds = []
@@ -266,11 +264,8 @@ def print_val_classification_report(model, loader, label_to_idx):
     y_pred = np.concatenate(all_preds)
     y_true = np.concatenate(all_labels)
 
-    # We can pass 'labels=list(range(len(label_to_idx)))' to ensure indices go 0..6
-    report = classification_report(y_true, y_pred,
-                                   labels=list(range(len(label_to_idx))),
-                                   digits=3)
-    # overall accuracy
+    label_names = [label for label, idx in sorted(label_to_idx.items(), key=lambda item: item[1])]
+    report = classification_report(y_true, y_pred, target_names=label_names, digits=3)
     correct = (y_pred == y_true).sum()
     total   = y_true.shape[0]
     final_acc = correct / total if total else 0
@@ -281,6 +276,18 @@ def print_val_classification_report(model, loader, label_to_idx):
     print(report)
     print(f"[Summary] Validation Accuracy (from this report): {final_acc*100:.2f}%\n")
 
+    return y_true, y_pred, label_names
+
+def plot_confusion_matrix(y_true, y_pred, label_names, output_path):
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=label_names, yticklabels=label_names)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
 ##############################################################################
 # 6) EVALUATE ENTIRE DATASET ACCURACY
 ##############################################################################
@@ -346,7 +353,11 @@ def main():
     plot_train_vs_val_loss(history)
 
     # Print classification report on val set
-    print_val_classification_report(model, val_dl, label_to_idx)
+    y_true, y_pred, label_names = print_val_classification_report(model, val_dl, label_to_idx)
+
+
+    # Plot confusion matrix
+    plot_confusion_matrix(y_true, y_pred, label_names, "images_results/cnn_model/confusion_matrix.png")
 
     # Evaluate entire train set
     train_acc = compute_full_dataset_accuracy(model, train_imgs, train_lbls)
@@ -360,7 +371,7 @@ def main():
 
     # Save final model
     os.makedirs("results", exist_ok=True)
-    final_model_path = "results/advanced_model.pth"
+    final_model_path = "results/cnn_model.pth"
     torch.save(model.state_dict(), final_model_path)
     print(f"[Info] Advanced CNN model saved to '{final_model_path}'")
 
