@@ -21,10 +21,10 @@ def train_random_forest(train_images, train_labels):
     clf.fit(train_images, train_labels)
     return clf
 
-def evaluate_model(clf, val_images, val_labels):
+def evaluate_model(clf, val_images, val_labels, label_names):
     val_preds = clf.predict(val_images)
     accuracy = accuracy_score(val_labels, val_preds)
-    report = classification_report(val_labels, val_preds, digits=3)
+    report = classification_report(val_labels, val_preds, target_names=label_names, digits=3)
     return accuracy, report, val_preds
 
 def plot_confusion_matrix(val_labels, val_preds, output_path, class_names):
@@ -42,6 +42,7 @@ def main():
     model_name = "random_forest"
     train_path = 'processed_data/train_data.pt'
     val_path = 'processed_data/val_data.pt'
+    label_names = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
     if not os.path.exists(train_path) or not os.path.exists(val_path):
         print("[Error] Processed train/val data not found.")
@@ -58,13 +59,13 @@ def main():
     clf = train_random_forest(train_images, train_labels)
 
     print("[Info] Evaluating model on validation set...")
-    val_accuracy, val_report, val_preds = evaluate_model(clf, val_images, val_labels)
+    val_accuracy, val_report, val_preds = evaluate_model(clf, val_images, val_labels, label_names)
 
     print("\n======================================")
     print(" Validation Classification Report:")
     print("======================================")
     print(val_report)
-    print(f"[Summary] Validation Accuracy: {val_accuracy*100:.2f}%")
+    print(f"[Summary] Validation Accuracy: {val_accuracy * 100:.2f}%")
     images_results = f"images_results/{model_name}/"
     results = "results"
 
@@ -73,8 +74,7 @@ def main():
     os.makedirs(results, exist_ok=True)
 
     # Plot Confusion Matrix
-    class_names = [str(i) for i in np.unique(train_labels)]  # Assuming class labels are integers
-    plot_confusion_matrix(val_labels, val_preds, f"{images_results}confusion_matrix.png", class_names)
+    plot_confusion_matrix(val_labels, val_preds, f"{images_results}confusion_matrix.png", label_names)
     print("[Info] Confusion Matrix plot saved.")
 
     # Save the model

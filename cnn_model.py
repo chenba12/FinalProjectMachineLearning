@@ -9,7 +9,7 @@ PURPOSE:
     and a final 7-class output layer.
   - Outputs standard training logs (train_loss, val_loss, val_acc per epoch) and
     a final classification report (precision, recall, F1) on the validation set.
-  - Saves final model weights to 'results/advanced_model.pth' so that 'live_inference.py'
+  - Saves final model weights to 'results/cnn_model.pth' so that 'live_inference.py'
     can perform real-time classification if desired.
 
 HOW TO RUN:
@@ -24,6 +24,7 @@ REQUIREMENTS:
 """
 
 import os
+from tqdm import tqdm
 import warnings
 import torch
 import torch.nn as nn
@@ -192,7 +193,7 @@ def train_model(num_epochs, lr, model, train_loader, val_loader, optimizer_func=
         # Training phase
         model.train()
         train_losses = []
-        for batch in train_loader:
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch_i+1}/{num_epochs}"):
             loss = model.training_step(batch)
             train_losses.append(loss)
             loss.backward()

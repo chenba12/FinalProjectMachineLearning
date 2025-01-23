@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score
 from torch.utils.data import TensorDataset, DataLoader
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
 
 class BasicNN(nn.Module):
     def __init__(self, input_dim, hidden_dim1, hidden_dim2, num_classes):
@@ -80,6 +82,15 @@ def validate_model(model, loader, criterion):
     val_preds = np.concatenate(all_preds)
     val_targets = np.concatenate(all_targets)
     return val_loss, val_preds, val_targets
+def plot_confusion_matrix(true_labels, pred_labels, label_names, output_path):
+    cm = confusion_matrix(true_labels, pred_labels)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=label_names, yticklabels=label_names)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Confusion Matrix')
+    plt.savefig(output_path)
+    plt.close()
 
 def main():
     print("=========================================================")
@@ -96,6 +107,7 @@ def main():
     train_path = "processed_data/train_data.pt"
     val_path = "processed_data/val_data.pt"
     test_path = "processed_data/test_data.pt"
+    label_names = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
     if not os.path.exists(train_path) or not os.path.exists(val_path):
         print("[Error] Processed train/val data not found.")
@@ -189,6 +201,10 @@ def main():
         prec = precision_score(y_true, y_pred, average=None, zero_division=0)
         rec = recall_score(y_true, y_pred, average=None, zero_division=0)
         return acc, prec, rec
+
+    # Plot confusion matrix
+    plot_confusion_matrix(val_targets, val_preds, label_names, os.path.join(images_results, "confusion_matrix.png"))
+    print("[Info] Confusion Matrix plot saved.")
 
     train_acc, _, _ = get_preds_metrics(model, train_images_flat, train_labels)
     print(f"Train Set -> Accuracy: {train_acc * 100:.2f}%")
