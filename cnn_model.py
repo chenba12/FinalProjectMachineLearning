@@ -288,6 +288,7 @@ def plot_confusion_matrix(y_true, y_pred, label_names, output_path):
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
+
 ##############################################################################
 # 6) EVALUATE ENTIRE DATASET ACCURACY
 ##############################################################################
@@ -322,7 +323,10 @@ def main():
     train_pt = "processed_data/train_data.pt"
     val_pt   = "processed_data/val_data.pt"
     test_pt  = "processed_data/test_data.pt"
-
+    images_results = "images_results/cnn_model/"
+    results = "results/cnn_model/"
+    os.makedirs(images_results, exist_ok=True)
+    os.makedirs(results, exist_ok=True)
     if not (os.path.exists(train_pt) and os.path.exists(val_pt)):
         print("[Error] Missing train_data.pt or val_data.pt in 'processed_data/'.")
         return
@@ -359,19 +363,19 @@ def main():
     # Plot confusion matrix
     plot_confusion_matrix(y_true, y_pred, label_names, "images_results/cnn_model/confusion_matrix.png")
 
-    # Evaluate entire train set
-    train_acc = compute_full_dataset_accuracy(model, train_imgs, train_lbls)
-    # Evaluate entire val set
-    val_acc   = compute_full_dataset_accuracy(model, val_imgs, val_lbls)
-
-    print("[Info] Full-set accuracies (no mini-batches):")
-    print(f"Train Set -> Accuracy: {train_acc*100:.2f}%")
-    print(f"Val   Set -> Accuracy: {val_acc*100:.2f}%")
+    # # Evaluate entire train set
+    # train_acc = compute_full_dataset_accuracy(model, train_imgs, train_lbls)
+    # # Evaluate entire val set
+    # val_acc   = compute_full_dataset_accuracy(model, val_imgs, val_lbls)
+    #
+    # print("[Info] Full-set accuracies (no mini-batches):")
+    # print(f"Train Set -> Accuracy: {train_acc*100:.2f}%")
+    # print(f"Val   Set -> Accuracy: {val_acc*100:.2f}%")
 
 
     # Save final model
     os.makedirs("results", exist_ok=True)
-    final_model_path = "results/cnn_model.pth"
+    final_model_path = "results/cnn_model/cnn_model.pth"
     torch.save(model.state_dict(), final_model_path)
     print(f"[Info] Advanced CNN model saved to '{final_model_path}'")
 
