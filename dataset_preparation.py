@@ -139,9 +139,20 @@ def prepare_dataset(dataset_root, output_path):
     print(f"[INFO] Preparing dataset from: {dataset_root}")
     print("----------------------------------------------------")
 
+    # Standard transformation pipeline
     transform_pipeline = transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize((48, 48)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))  # scale to approx [-1..1]
+    ])
+
+    # Augmentation pipeline for "disgust" label
+    augment_pipeline = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.Resize((48, 48)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(10),
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))  # scale to approx [-1..1]
     ])
@@ -153,10 +164,16 @@ def prepare_dataset(dataset_root, output_path):
 
     images = []
     labels = []
+    disgust_count = 0
 
     # apply transformations for each image
     for img_path, label_idx in tqdm(data, desc=f"Processing {os.path.basename(dataset_root)}"):
-        tensor = load_and_preprocess_image(img_path, transform_pipeline)
+        if label_idx == label_to_idx["disgust"]:
+            tensor = load_and_preprocess_image(img_path, augment_pipeline)
+            disgust_count += 1
+        else:
+            tensor = load_and_preprocess_image(img_path, transform_pipeline)
+
         if tensor is not None:
             images.append(tensor)
             labels.append(label_idx)
@@ -170,6 +187,7 @@ def prepare_dataset(dataset_root, output_path):
     # save as a tuple in .pt format
     torch.save((images_tensor, labels_tensor, label_to_idx), output_path)
     print(f"✓ Saved processed data for '{dataset_root}' -> {output_path}")
+    print(f"✓ Created {disgust_count} new images for the 'disgust' label")
 
     return label_to_idx
 
